@@ -25,9 +25,7 @@ from typing import Optional
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.watchers.base import (
+from golden_tier_external_world.watchers.base import (
     BaseWatcher,
     DispatchResult,
     EventDispatcher,
@@ -44,7 +42,7 @@ from skills.watchers.base import (
     WatcherTickResult,
     make_event,
 )
-from skills.watchers.base.cli import build_parser, main as cli_main
+from golden_tier_external_world.watchers.base.cli import build_parser, main as cli_main
 
 
 # ===========================================================================

@@ -27,9 +27,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Path bootstrap
 # ---------------------------------------------------------------------------
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.watchers.whatsapp.models import (
+from golden_tier_external_world.watchers.whatsapp.models import (
     WhatsAppChatType,
     WhatsAppConfig,
     WhatsAppEventType,
@@ -37,13 +35,13 @@ from skills.watchers.whatsapp.models import (
     WhatsAppMessageType,
     make_whatsapp_message,
 )
-from skills.watchers.whatsapp.client import (
+from golden_tier_external_world.watchers.whatsapp.client import (
     MockWhatsAppClient,
     RealWhatsAppClient,
     WhatsAppClient,
 )
-from skills.watchers.whatsapp.watcher import WhatsAppWatcher
-from skills.watchers.whatsapp.handlers import (
+from golden_tier_external_world.watchers.whatsapp.watcher import WhatsAppWatcher
+from golden_tier_external_world.watchers.whatsapp.handlers import (
     make_filter_handler,
     make_group_filter,
     make_log_handler,
@@ -52,9 +50,9 @@ from skills.watchers.whatsapp.handlers import (
     make_private_filter,
     make_sender_filter,
 )
-from skills.watchers.whatsapp import WhatsAppWatcherSkill
-from skills.watchers.whatsapp.cli import build_parser, main as cli_main
-from skills.watchers.base.models import WatcherEvent
+from golden_tier_external_world.watchers.whatsapp import WhatsAppWatcherSkill
+from golden_tier_external_world.watchers.whatsapp.cli import build_parser, main as cli_main
+from golden_tier_external_world.watchers.base.models import WatcherEvent
 
 
 # ===========================================================================
@@ -532,7 +530,7 @@ class TestHandlers:
 
     def _make_text_event(self, sender: str = "+1", body: str = "Hi",
                           chat_type: str = WhatsAppChatType.PRIVATE) -> WatcherEvent:
-        from skills.watchers.base.models import make_event
+        from golden_tier_external_world.watchers.base.models import make_event
         return make_event(
             watcher_id="whatsapp-test",
             event_type=WhatsAppEventType.NEW_TEXT_MESSAGE,
@@ -548,7 +546,7 @@ class TestHandlers:
         )
 
     def _make_media_event(self) -> WatcherEvent:
-        from skills.watchers.base.models import make_event
+        from golden_tier_external_world.watchers.base.models import make_event
         return make_event(
             watcher_id="whatsapp-test",
             event_type=WhatsAppEventType.NEW_MEDIA_MESSAGE,
@@ -751,7 +749,7 @@ class TestWhatsAppWatcherSkill:
         assert isinstance(skill.watcher, WhatsAppWatcher)
 
     def test_dispatcher_property(self, skill: WhatsAppWatcherSkill) -> None:
-        from skills.watchers.base.dispatcher import EventDispatcher
+        from golden_tier_external_world.watchers.base.dispatcher import EventDispatcher
         assert isinstance(skill.dispatcher, EventDispatcher)
 
 

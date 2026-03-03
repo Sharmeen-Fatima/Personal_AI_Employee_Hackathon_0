@@ -16,9 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.core.ralph.models import (
+from silver_tier_core_autonomy.ralph.models import (
     ComponentHealth,
     HealthReport,
     HealthState,
@@ -34,13 +32,13 @@ from skills.core.ralph.models import (
     make_task,
     make_tick,
 )
-from skills.core.ralph.health import HealthChecker
-from skills.core.ralph.task_queue import TaskQueue
-from skills.core.ralph.memory import MemoryConsolidator
-from skills.core.ralph.logger import RalphLogger
-from skills.core.ralph.reporter import StatusReporter
-from skills.core.ralph.runner import LoopRunner
-from skills.core.ralph import RalphSkill
+from silver_tier_core_autonomy.ralph.health import HealthChecker
+from silver_tier_core_autonomy.ralph.task_queue import TaskQueue
+from silver_tier_core_autonomy.ralph.memory import MemoryConsolidator
+from silver_tier_core_autonomy.ralph.logger import RalphLogger
+from silver_tier_core_autonomy.ralph.reporter import StatusReporter
+from silver_tier_core_autonomy.ralph.runner import LoopRunner
+from silver_tier_core_autonomy.ralph import RalphSkill
 
 
 # ---------------------------------------------------------------------------
@@ -546,7 +544,7 @@ class TestLoopRunner:
             assert "skipped" in task_phases[0].details
 
     def test_task_dispatched_via_orchestrator(self, runner: LoopRunner, queue: TaskQueue):
-        from skills.core.orchestrator.models import WorkflowStatus
+        from silver_tier_core_autonomy.orchestrator.models import WorkflowStatus
         mock_orch = MagicMock()
         mock_run  = MagicMock()
         mock_run.status = MagicMock()

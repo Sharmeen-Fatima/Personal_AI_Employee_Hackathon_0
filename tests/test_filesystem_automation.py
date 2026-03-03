@@ -23,9 +23,8 @@ import pytest
 # Adjust sys.path so that `src/` is importable when running from repo root
 # ---------------------------------------------------------------------------
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from skills.core.filesystem_automation import (
+from silver_tier_core_autonomy.filesystem_automation import (
     CircuitBreaker,
     FilesystemSkill,
     FileOperations,
@@ -33,8 +32,8 @@ from skills.core.filesystem_automation import (
     SkillLogger,
     Validator,
 )
-from skills.core.filesystem_automation.validator import SecurityError, VaultError
-from skills.core.filesystem_automation.operations import OperationResult
+from silver_tier_core_autonomy.filesystem_automation.validator import SecurityError, VaultError
+from silver_tier_core_autonomy.filesystem_automation.operations import OperationResult
 
 
 # ===========================================================================

@@ -21,18 +21,16 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.safety.hitl import (
+from bronze_tier_governance.hitl import (
     DecisionError,
     HITLSkill,
     ValidationError,
     make_request,
 )
-from skills.safety.hitl.approver import HITLApprover
-from skills.safety.hitl.audit import HITLAuditLogger
-from skills.safety.hitl.cli import build_parser, main as cli_main
-from skills.safety.hitl.models import (
+from bronze_tier_governance.hitl.approver import HITLApprover
+from bronze_tier_governance.hitl.audit import HITLAuditLogger
+from bronze_tier_governance.hitl.cli import build_parser, main as cli_main
+from bronze_tier_governance.hitl.models import (
     TIER_SLA_SECONDS,
     ApprovalRequest,
     Decision,
@@ -40,8 +38,8 @@ from skills.safety.hitl.models import (
     SLAConfig,
     Tier,
 )
-from skills.safety.hitl.store import RequestStore
-from skills.safety.hitl.validator import validate_request, validate_decision_input
+from bronze_tier_governance.hitl.store import RequestStore
+from bronze_tier_governance.hitl.validator import validate_request, validate_decision_input
 
 
 # ===========================================================================

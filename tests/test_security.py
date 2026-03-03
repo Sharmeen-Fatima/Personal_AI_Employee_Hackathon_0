@@ -26,9 +26,7 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.safety.security import (
+from bronze_tier_governance.security import (
     AccessPolicy,
     CredentialLoader,
     CredentialNotFoundError,
@@ -49,9 +47,9 @@ from skills.safety.security import (
     redact_dict,
     register_secret,
 )
-from skills.safety.security.loader import CredentialError, DotEnvParser
-from skills.safety.security.models import CredentialSource, AuditEntry
-from skills.safety.security.cli import build_parser, main as cli_main
+from bronze_tier_governance.security.loader import CredentialError, DotEnvParser
+from bronze_tier_governance.security.models import CredentialSource, AuditEntry
+from bronze_tier_governance.security.cli import build_parser, main as cli_main
 
 
 # ===========================================================================

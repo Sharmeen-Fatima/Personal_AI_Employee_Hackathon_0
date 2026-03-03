@@ -20,9 +20,8 @@ import pytest
 # ---------------------------------------------------------------------------
 
 import sys, os
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from skills.core.orchestrator.models import (
+from silver_tier_core_autonomy.orchestrator.models import (
     OnFailure,
     StepResult,
     StepStatus,
@@ -32,16 +31,16 @@ from skills.core.orchestrator.models import (
     WorkflowStep,
     make_run,
 )
-from skills.core.orchestrator.registry import (
+from silver_tier_core_autonomy.orchestrator.registry import (
     LookupError,
     RegistrationError,
     SkillRegistry,
 )
-from skills.core.orchestrator.executor import StepExecutor, resolve_params
-from skills.core.orchestrator.engine import WorkflowEngine
-from skills.core.orchestrator.logger import OrchestratorLogger
-from skills.core.orchestrator.store import RunStore
-from skills.core.orchestrator import OrchestratorSkill
+from silver_tier_core_autonomy.orchestrator.executor import StepExecutor, resolve_params
+from silver_tier_core_autonomy.orchestrator.engine import WorkflowEngine
+from silver_tier_core_autonomy.orchestrator.logger import OrchestratorLogger
+from silver_tier_core_autonomy.orchestrator.store import RunStore
+from silver_tier_core_autonomy.orchestrator import OrchestratorSkill
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +339,7 @@ class TestStepExecutor:
         self, executor: StepExecutor, registry: SkillRegistry
     ):
         """HITL auto-approves (tier <= 1 maps to AUTO_APPROVED); tier=2 with mock hitl."""
-        from skills.safety.hitl.models import Decision
+        from bronze_tier_governance.hitl.models import Decision
         mock_hitl = MagicMock()
         mock_req  = MagicMock()
         mock_req.status = Decision.AUTO
@@ -356,7 +355,7 @@ class TestStepExecutor:
     def test_hitl_tier2_pending_returns_waiting(
         self, executor: StepExecutor, registry: SkillRegistry
     ):
-        from skills.safety.hitl.models import Decision
+        from bronze_tier_governance.hitl.models import Decision
         mock_hitl = MagicMock()
         mock_req  = MagicMock()
         mock_req.status = Decision.PENDING
@@ -373,7 +372,7 @@ class TestStepExecutor:
     def test_hitl_tier2_denied_returns_blocked(
         self, executor: StepExecutor, registry: SkillRegistry
     ):
-        from skills.safety.hitl.models import Decision
+        from bronze_tier_governance.hitl.models import Decision
         mock_hitl = MagicMock()
         mock_req  = MagicMock()
         mock_req.status = Decision.DENIED

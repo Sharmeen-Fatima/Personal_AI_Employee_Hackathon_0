@@ -27,29 +27,27 @@ import pytest
 # ---------------------------------------------------------------------------
 # Path bootstrap (runs from repo root via pytest)
 # ---------------------------------------------------------------------------
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from skills.watchers.gmail.models import (
+from golden_tier_external_world.watchers.gmail.models import (
     GmailConfig,
     GmailEventType,
     GmailMessage,
     make_gmail_message,
 )
-from skills.watchers.gmail.client import (
+from golden_tier_external_world.watchers.gmail.client import (
     GmailClient,
     MockGmailClient,
     RealGmailClient,
 )
-from skills.watchers.gmail.watcher import GmailWatcher
-from skills.watchers.gmail.handlers import (
+from golden_tier_external_world.watchers.gmail.watcher import GmailWatcher
+from golden_tier_external_world.watchers.gmail.handlers import (
     make_filter_handler,
     make_log_handler,
     make_orchestrator_handler,
     make_sender_filter,
 )
-from skills.watchers.gmail import GmailWatcherSkill
-from skills.watchers.gmail.cli import build_parser, main as cli_main
-from skills.watchers.base.models import WatcherEvent
+from golden_tier_external_world.watchers.gmail import GmailWatcherSkill
+from golden_tier_external_world.watchers.gmail.cli import build_parser, main as cli_main
+from golden_tier_external_world.watchers.base.models import WatcherEvent
 
 
 # ===========================================================================
@@ -463,7 +461,7 @@ class TestGmailWatcher:
 class TestHandlers:
 
     def _make_event(self, subject: str = "Hi", sender: str = "a@b.com") -> WatcherEvent:
-        from skills.watchers.base.models import make_event
+        from golden_tier_external_world.watchers.base.models import make_event
         evt = make_event(
             watcher_id="gmail-test_at_example_com",
             event_type=GmailEventType.NEW_MESSAGE,
@@ -617,7 +615,7 @@ class TestGmailWatcherSkill:
         assert isinstance(skill.watcher, GmailWatcher)
 
     def test_dispatcher_property(self, skill: GmailWatcherSkill) -> None:
-        from skills.watchers.base.dispatcher import EventDispatcher
+        from golden_tier_external_world.watchers.base.dispatcher import EventDispatcher
         assert isinstance(skill.dispatcher, EventDispatcher)
 
     def test_security_skill_integration_graceful(
