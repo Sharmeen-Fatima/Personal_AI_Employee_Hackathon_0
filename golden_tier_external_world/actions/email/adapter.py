@@ -117,26 +117,88 @@ class MockEmailAdapter(EmailAdapter):
 
 
 # ---------------------------------------------------------------------------
-# RealEmailAdapter — Phase 2 stub (raises NotImplementedError)
+# RealEmailAdapter — Gmail SMTP via smtplib + App Password
 # ---------------------------------------------------------------------------
 
 class RealEmailAdapter(EmailAdapter):
     """
-    Phase 2 stub.  Will wrap smtplib or an SMTP API.
+    Live email adapter using Gmail SMTP (smtp.gmail.com:587 + STARTTLS).
 
-    Accepts credential_token so callers can pass the secret from
-    SecuritySkill without this class ever storing or logging it.
+    Requires a 16-digit Gmail App Password (same one used for IMAP).
+    credential_token is stored only in memory; never logged.
+
+    Usage::
+
+        config  = EmailConfig(sender_address="you@gmail.com")
+        adapter = RealEmailAdapter(config, credential_token="xxxx xxxx xxxx xxxx")
+        result  = adapter.send(make_email_request(["friend@gmail.com"], "Hi", "Hello!"))
     """
 
+    SMTP_HOST = "smtp.gmail.com"
+    SMTP_PORT = 587
+
     def __init__(self, config: "EmailConfig", credential_token: str = "") -> None:  # noqa: F821
-        # credential_token is intentionally not stored as a persistent attribute
-        self._has_token = bool(credential_token)
+        self._config = config
+        self._credential_token = credential_token.replace(" ", "")  # strip spaces
+        self._has_token = bool(self._credential_token)
 
     def send(self, request: EmailRequest) -> EmailResult:
-        raise NotImplementedError(
-            "RealEmailAdapter is a Phase 2 stub. Use MockEmailAdapter for now."
-        )
+        """Send email via Gmail SMTP. Never raises."""
+        if not self._has_token:
+            return EmailResult(
+                request_id=request.request_id,
+                status=EmailActionStatus.FAILED,
+                error="RealEmailAdapter: no credential_token provided",
+                adapter="real_smtp",
+            )
+        try:
+            import smtplib
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+
+            sender = request.sender or self._config.sender_address
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = request.subject
+            msg["From"] = sender
+            msg["To"] = ", ".join(request.to)
+            if request.cc:
+                msg["Cc"] = ", ".join(request.cc)
+
+            msg.attach(MIMEText(request.body, "plain"))
+
+            all_recipients = request.to + request.cc + request.bcc
+
+            with smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.login(self._config.sender_address, self._credential_token)
+                smtp.sendmail(sender, all_recipients, msg.as_string())
+
+            return EmailResult(
+                request_id=request.request_id,
+                status=EmailActionStatus.SENT,
+                sent_at=datetime.now(tz=timezone.utc),
+                adapter="real_smtp",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return EmailResult(
+                request_id=request.request_id,
+                status=EmailActionStatus.FAILED,
+                error=str(exc),
+                adapter="real_smtp",
+            )
 
     def health_check(self) -> bool:
-        # Returns False so callers don't treat stub as healthy
-        return False
+        """Try SMTP login; return True if credentials are valid. Never raises."""
+        if not self._has_token:
+            return False
+        try:
+            import smtplib
+            with smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.login(self._config.sender_address, self._credential_token)
+                return True
+        except Exception:  # noqa: BLE001
+            return False

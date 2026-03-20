@@ -1,159 +1,226 @@
-# Personal AI Employee - Hackathon 0 (Bronze Tier)
+# Personal AI Employee — GIAIC Hackathon 0
 
-**Status**: Foundation Phase
-**Version**: 1.0.0
-**Tier**: Bronze
+**Status**: Silver Tier — LIVE with Real Credentials
+**Version**: 2.0.0
+**Tier**: Silver ✅
+**Author**: Sharmeen Fatima
 
 ---
 
 ## 🎯 Project Overview
 
-A local-first, autonomous Personal AI Employee system built on:
-- **Claude Code** as reasoning engine
-- **Obsidian** as local-first knowledge vault
-- **Python Watchers** for persistence
-- **MCP Servers** for external actions
-- **Human-in-the-Loop** approval system
-- **Ralph Wiggum Loop** for continuous operation
+A local-first, autonomous **Personal AI Employee** system that monitors LinkedIn, sends emails, and posts content automatically — all while keeping humans in the loop for critical decisions.
+
+Built for GIAIC Hackathon using:
+- **Claude AI** as reasoning engine
+- **Selenium** for LinkedIn browser automation
+- **Gmail SMTP/IMAP** for real email integration
+- **Obsidian Vault** as local-first knowledge store
+- **Human-in-the-Loop (HITL)** approval system (Tier 0–4)
+- **Python Watchers** for continuous monitoring
+
+---
+
+## 🏆 Tier Progress
+
+| Tier | Status | Description |
+|------|--------|-------------|
+| 🥉 Bronze | ✅ Complete | Core skills, HITL, vault, watchers (mock) |
+| 🥈 Silver | ✅ Complete | Real credentials — LinkedIn + Gmail LIVE |
+| 🥇 Gold | 🔜 Next | Full autonomy, Odoo ERP, WhatsApp |
+
+---
+
+## ⚡ Silver Tier — What Works LIVE
+
+### ✅ LinkedIn Watcher
+- Logs in via **Selenium Chrome** (headless or visible)
+- Fetches activity from LinkedIn inbox
+- Detects new messages and notifications
+
+### ✅ LinkedIn Auto-Post (HITL Flow)
+```
+Draft Post → Pending Approval → Human Approves → LIVE Post on LinkedIn
+```
+- Opens LinkedIn feed in browser
+- Finds "Start a post" via JS/Shadow DOM
+- Types content (355+ chars) + hashtags
+- Clicks Post button → Published LIVE
+
+### ✅ Gmail Auto-Send (HITL Flow)
+```
+Draft Email → Human Approves → Gmail SMTP → Delivered to Recipients
+```
+- Uses Gmail App Password (SMTP TLS)
+- Sends to configured recipients automatically
+- Same HITL approval flow as LinkedIn
+
+### ✅ Gmail IMAP Watcher
+- Fetches unread emails via IMAP SSL
+- Parses subject, sender, attachments
+- Runs watcher tick for new event detection
+
+---
 
 ## 📁 Project Structure
 
 ```
 Hackathon_0/
-├── .claude/
-│   └── skills/              # Skill library organized by category
-│       ├── core/            # Core system skills
-│       ├── watchers/        # Event monitoring skills
-│       ├── actions/         # External action skills
-│       ├── safety/          # Safety and security skills
-│       └── business/        # Business intelligence skills
-├── .specify/                # Spec-Driven Development artifacts
-├── obsidian-vault/          # Knowledge base and memory
-├── src/                     # Source code
-├── history/                 # Prompt history and decisions
-├── constitution.md          # System governance document
-└── README.md                # This file
+├── golden_tier_external_world/
+│   ├── watchers/
+│   │   ├── gmail/          # Gmail IMAP watcher + RealGmailClient
+│   │   ├── linkedin/       # LinkedIn Selenium watcher + RealLinkedInClient
+│   │   └── whatsapp/       # WhatsApp watcher (mock)
+│   └── actions/
+│       ├── email/          # EmailAction + RealEmailAdapter (SMTP)
+│       ├── linkedin/       # LinkedInPoster (HITL → Selenium post)
+│       ├── browser/        # Browser MCP action
+│       └── odoo/           # Odoo ERP action (stub)
+├── silver_tier_core_autonomy/
+│   ├── plan_loop/          # Plan-loop scheduler
+│   └── scheduler/          # Task scheduler
+├── bronze_tier_governance/
+│   └── hitl/               # Human-in-the-Loop approval system
+├── obsidian-vault/
+│   ├── Pending_Approval/   # Posts/emails awaiting human approval
+│   ├── Approved/           # Approved and published content
+│   ├── Done/               # Completed tasks
+│   ├── Plans/              # AI-generated task plans
+│   └── 70-LOGS/            # All watcher + action logs
+├── history/prompts/        # Prompt History Records (PHRs)
+├── tests/                  # Unit + integration tests
+├── run_silver_live.py      # 🚀 Main Silver Tier live demo
+├── run_silver_demo.py      # Demo mode (mock credentials)
+└── .env                    # Credentials (gitignored — never commit)
 ```
 
-## 🛠️ Skills Inventory
+---
 
-### Core (3 skills)
-- `FILESYSTEM_AUTOMATION_SKILL` - Vault file operations
-- `ORCHESTRATOR_SYSTEM_SKILL` - Multi-skill coordination
-- `RALPH_WIGGUM_LOOP_SKILL` - Persistence and continuous operation
+## 🚀 Quick Start
 
-### Watchers (3 skills)
-- `BASE_WATCHER_CREATION_SKILL` - Watcher framework
-- `GMAIL_WATCHER_SKILL` - Email monitoring
-- `WHATSAPP_WATCHER_SKILL` - WhatsApp monitoring
+### 1. Install Dependencies
+```bash
+pip install selenium webdriver-manager python-dotenv
+```
 
-### Actions (3 skills)
-- `EMAIL_MCP_ACTION_SKILL` - Email sending
-- `BROWSER_MCP_SKILL` - Web automation
-- `ODOO_MCP_INTEGRATION_SKILL` - ERP integration
+### 2. Configure Credentials
+Create `.env` file (never commit this):
+```env
+GMAIL_ACCOUNT_EMAIL=your@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+LINKEDIN_EMAIL=your@gmail.com
+LINKEDIN_PASSWORD=yourpassword
+LINKEDIN_PROFILE_URL=https://www.linkedin.com/in/your-name/
+EMAIL_RECIPIENTS=friend@gmail.com,colleague@outlook.com
+```
 
-### Safety (2 skills)
-- `HUMAN_IN_THE_LOOP_APPROVAL_SKILL` - HITL workflow
-- `SECURITY_AND_CREDENTIAL_MANAGEMENT_SKILL` - Security controls
+**Gmail App Password setup:**
+1. Google Account → Security → 2-Step Verification → ON
+2. Security → App Passwords → Mail → Generate
+3. Copy 16-digit password to `.env`
 
-### Business (1 skill)
-- `CEO_WEEKLY_AUDIT_SKILL` - Weekly reporting
+**Gmail IMAP setup:**
+- Gmail → Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP → Save
 
-**Total**: 12 skills planned
+### 3. Run Silver Tier Demo
+```bash
+python run_silver_live.py
+```
 
-## 📋 Getting Started
+**What happens:**
+```
+STEP 1 — Gmail IMAP:     Connect → Fetch unread emails → Watcher tick
+STEP 2 — LinkedIn Watch: Login → Fetch activity → Watcher tick
+STEP 3 — LinkedIn Post:  Draft → HITL Approve → POST LIVE on LinkedIn
+STEP 4 — Gmail Send:     Draft → HITL Approve → Email sent to recipients
+```
 
-### Prerequisites
-- Claude Code CLI installed
-- Obsidian installed
-- Python 3.9+
-- Git
+---
 
-### Setup
-1. Read `constitution.md` for system governance
-2. Review `obsidian-vault/README.md` for vault structure
-3. Check `.claude/skills/` for available skills
-4. Follow `QUICK-START.md` in vault for configuration
+## 🔐 HITL Approval Tiers
 
-## 🔐 Governance
+| Tier | Risk Level | Approval |
+|------|-----------|---------|
+| 0 | Read-only | Auto |
+| 1 | Low risk | Auto |
+| 2 | Medium | Human required |
+| 3 | High risk | Human required |
+| 4 | Critical | Human + audit |
 
-This project is governed by `constitution.md` which defines:
-- Core operating principles
-- HITL approval tiers (0-4)
-- Safety boundaries
-- Skill design rules
-- Evolution path (Bronze → Silver → Gold)
+LinkedIn posts and emails run through **Tier 2 HITL** — human approval simulated in demo, real in production.
 
-**Key Principle**: Start restrictive, loosen deliberately. Trust is earned.
+---
 
-## 🎓 Bronze Tier Goals
+## 🛠️ Skills Inventory (12 Skills)
 
-- [ ] Core loop operational (Ralph Wiggum)
-- [ ] 3+ skills implemented and tested
-- [ ] HITL approval system functional
-- [ ] 7 consecutive days uptime
-- [ ] 50+ successful HITL approvals
-- [ ] Zero security incidents
+### Core
+- `FILESYSTEM_AUTOMATION_SKILL` — Vault file operations
+- `ORCHESTRATOR_SYSTEM_SKILL` — Multi-skill coordination
+- `RALPH_WIGGUM_LOOP_SKILL` — Continuous operation loop
+
+### Watchers
+- `BASE_WATCHER_CREATION_SKILL` — Watcher framework
+- `GMAIL_WATCHER_SKILL` — Email monitoring (LIVE via IMAP)
+- `WHATSAPP_WATCHER_SKILL` — WhatsApp monitoring
+
+### Actions
+- `EMAIL_MCP_ACTION_SKILL` — Email sending (LIVE via SMTP)
+- `BROWSER_MCP_SKILL` — Web automation (Selenium)
+- `ODOO_MCP_INTEGRATION_SKILL` — ERP integration
+
+### Safety
+- `HUMAN_IN_THE_LOOP_APPROVAL_SKILL` — HITL workflow
+- `SECURITY_AND_CREDENTIAL_MANAGEMENT_SKILL` — Security controls
+
+### Business
+- `CEO_WEEKLY_AUDIT_SKILL` — Weekly reporting
+
+---
 
 ## 📊 Current Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Constitution | ✅ Complete | v1.0.0 ratified |
-| Vault Structure | ✅ Complete | All sections created |
-| Skills Structure | ✅ Complete | 12 placeholders created |
-| Core Skills | ⏳ Pending | Ready for implementation |
-| Watchers | ⏳ Pending | Framework needed |
-| Actions | ⏳ Pending | MCP servers needed |
-| HITL System | ⏳ Pending | Approval workflow needed |
-
-## 🚀 Next Steps
-
-1. **Implement Core Skills**
-   - Start with `FILESYSTEM_AUTOMATION_SKILL`
-   - Then `RALPH_WIGGUM_LOOP_SKILL`
-   - Finally `ORCHESTRATOR_SYSTEM_SKILL`
-
-2. **Set Up HITL System**
-   - Implement `HUMAN_IN_THE_LOOP_APPROVAL_SKILL`
-   - Configure approval tiers
-   - Test with dummy actions
-
-3. **Build First Watcher**
-   - Implement `BASE_WATCHER_CREATION_SKILL`
-   - Create framework for other watchers
-   - Test with local file watching
-
-4. **Configure MCP Servers**
-   - Document in `obsidian-vault/30-INTEGRATIONS/`
-   - Set up authentication
-   - Test connections
-
-## 📖 Documentation
-
-- **Constitution**: `constitution.md` - System governance
-- **Vault Guide**: `obsidian-vault/README.md` - Knowledge base structure
-- **Naming Guide**: `obsidian-vault/NAMING-CONVENTIONS.md` - Standards
-- **Quick Start**: `obsidian-vault/QUICK-START.md` - 5-minute guide
-- **Skill Template**: `.claude/skills/*/SKILL.md` - Placeholder format
-
-## 🔗 Key Links
-
-- [Constitution](./constitution.md) - Governance document
-- [Obsidian Vault](./obsidian-vault/) - Knowledge base
-- [Skills Directory](./.claude/skills/) - Skill library
-- [Prompt History](./history/prompts/) - Decision log
-
-## 📝 License
-
-Personal project - see specific license file if added.
-
-## 🤝 Contributing
-
-This is a personal AI employee project. Contributions follow the governance model defined in `constitution.md`.
+| Vault Structure | ✅ Complete | All sections operational |
+| HITL System | ✅ Complete | Tiers 0–4 working |
+| Gmail IMAP Watcher | ✅ LIVE | Real IMAP connection |
+| Gmail SMTP Sender | ✅ LIVE | Real email delivery |
+| LinkedIn Watcher | ✅ LIVE | Selenium Chrome |
+| LinkedIn Auto-Post | ✅ LIVE | Shadow DOM posting |
+| Plan Loop Scheduler | ✅ Complete | Silver Tier scheduler |
+| WhatsApp Watcher | 🔜 Gold Tier | Stub ready |
+| Odoo ERP | 🔜 Gold Tier | Stub ready |
 
 ---
 
-**Last Updated**: 2026-02-16
-**Tier**: Bronze (Foundation)
-**Next Milestone**: Core skills implementation
+## 🔬 Technical Highlights
+
+- **Shadow DOM traversal** — LinkedIn's post editor is inside Shadow DOM; found via JS `createTreeWalker` + recursive shadow root search
+- **React event dispatch** — After typing, dispatches `input`/`change`/`keyup` events to enable Post button (React state update)
+- **IMAP + SMTP** — Same Gmail App Password works for both reading (IMAP SSL:993) and sending (SMTP STARTTLS:587)
+- **Fail-safe HITL** — Every action goes through approval; failures return structured results, never raise exceptions
+
+---
+
+## 📖 Logs & Vault
+
+```
+obsidian-vault/Pending_Approval/   ← Posts/emails awaiting approval
+obsidian-vault/Approved/           ← Approved content
+obsidian-vault/70-LOGS/            ← All system logs
+obsidian-vault/70-LOGS/linkedin_feed_screenshot.png
+obsidian-vault/70-LOGS/linkedin_after_click.png
+```
+
+---
+
+## 📝 License
+
+Personal project for GIAIC Hackathon 0.
+
+---
+
+**Last Updated**: 2026-03-20
+**Tier**: Silver (LIVE with Real Credentials)
+**Next Milestone**: Gold Tier — WhatsApp + Odoo + Full Autonomy

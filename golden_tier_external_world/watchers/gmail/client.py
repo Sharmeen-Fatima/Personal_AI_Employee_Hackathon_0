@@ -1,17 +1,21 @@
 """
 GMAIL_WATCHER_SKILL — Gmail Client
-Phase 1: GmailClient ABC, MockGmailClient (test/dev), RealGmailClient (Phase 2 stub).
+Phase 1: GmailClient ABC, MockGmailClient (test/dev), RealGmailClient (IMAP live).
 
 Constitution compliance:
   - Principle I: Local-First — MockGmailClient requires no network
-  - Section 8: Credential Storage — RealGmailClient stub accepts credential_token, never logs it
+  - Section 8: Credential Storage — RealGmailClient accepts app_password, never logs it
   - Principle VI: Fail Safe — health_check() never raises; fetch errors are surfaced, not hidden
 """
 
 from __future__ import annotations
 
+import email as email_lib
+import imaplib
 from abc import ABC, abstractmethod
 from collections import deque
+from datetime import datetime, timezone
+from email.header import decode_header
 from typing import Optional
 
 from .models import GmailConfig, GmailMessage, make_gmail_message
@@ -135,32 +139,159 @@ class MockGmailClient(GmailClient):
 
 class RealGmailClient(GmailClient):
     """
-    Phase 2 stub.  Will wrap the Google Gmail API.
+    Live Gmail client using IMAP4_SSL + App Password.
 
-    Accepts a credential_token so callers can pass the secret from
-    SecuritySkill without this class ever storing or logging it.
+    Requires Gmail IMAP enabled and a 16-digit App Password.
+    Enable IMAP: Gmail Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP
+
+    Usage::
+
+        config = GmailConfig(account_email="you@gmail.com")
+        client = RealGmailClient(config, app_password="xxxx xxxx xxxx xxxx")
+        messages = client.fetch_unread(max_results=5)
     """
 
-    def __init__(self, config: GmailConfig, credential_token: str = "") -> None:
-        # credential_token is intentionally not stored as a persistent attribute
-        # — Phase 2 will pass it through to the API client on each call.
+    IMAP_HOST = "imap.gmail.com"
+    IMAP_PORT = 993
+
+    def __init__(self, config: GmailConfig, app_password: str = "") -> None:
         self._config = config
-        self._has_token = bool(credential_token)
+        self._app_password = app_password.replace(" ", "")  # strip spaces
+        self._uid_to_msg_id: dict[str, str] = {}  # IMAP UID → our message_id
+
+    # ------------------------------------------------------------------
+    # GmailClient interface
+    # ------------------------------------------------------------------
 
     def fetch_unread(
         self,
         max_results: int = 10,
         filter_labels: Optional[list[str]] = None,
     ) -> list[GmailMessage]:
-        raise NotImplementedError(
-            "RealGmailClient is a Phase 2 stub. Use MockGmailClient for now."
-        )
+        """Fetch unread emails from INBOX via IMAP."""
+        try:
+            with imaplib.IMAP4_SSL(self.IMAP_HOST, self.IMAP_PORT) as imap:
+                imap.login(self._config.account_email, self._app_password)
+                imap.select("INBOX", readonly=True)
+
+                _, data = imap.search(None, "UNSEEN")
+                uid_list = data[0].split() if data[0] else []
+                uid_list = uid_list[-max_results:]  # most recent N
+
+                messages: list[GmailMessage] = []
+                for uid in uid_list:
+                    try:
+                        msg = self._fetch_one(imap, uid)
+                        if msg:
+                            messages.append(msg)
+                    except Exception:  # noqa: BLE001
+                        continue
+                return messages
+        except imaplib.IMAP4.error:
+            return []
+        except Exception:  # noqa: BLE001
+            return []
 
     def mark_read(self, message_id: str) -> bool:
-        raise NotImplementedError(
-            "RealGmailClient is a Phase 2 stub. Use MockGmailClient for now."
-        )
+        """Mark a message as read by removing \\Unseen flag."""
+        uid = self._msg_id_to_uid(message_id)
+        if uid is None:
+            return False
+        try:
+            with imaplib.IMAP4_SSL(self.IMAP_HOST, self.IMAP_PORT) as imap:
+                imap.login(self._config.account_email, self._app_password)
+                imap.select("INBOX")
+                imap.store(uid, "+FLAGS", "\\Seen")
+                return True
+        except Exception:  # noqa: BLE001
+            return False
 
     def health_check(self) -> bool:
-        # Returns False (not True) so watchers don't treat stub as healthy
-        return False
+        """Try IMAP login; return True if credentials are valid."""
+        if not self._app_password:
+            return False
+        try:
+            with imaplib.IMAP4_SSL(self.IMAP_HOST, self.IMAP_PORT) as imap:
+                imap.login(self._config.account_email, self._app_password)
+                return True
+        except Exception:  # noqa: BLE001
+            return False
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _fetch_one(self, imap: imaplib.IMAP4_SSL, uid: bytes) -> Optional[GmailMessage]:
+        """Fetch and parse a single message by IMAP UID."""
+        _, msg_data = imap.fetch(uid, "(RFC822)")
+        if not msg_data or not msg_data[0]:
+            return None
+
+        raw = msg_data[0][1]
+        if not isinstance(raw, bytes):
+            return None
+
+        msg = email_lib.message_from_bytes(raw)
+
+        subject  = self._decode_header(msg.get("Subject", "(no subject)"))
+        sender   = self._decode_header(msg.get("From", ""))
+        msg_id   = msg.get("Message-ID", f"UID-{uid.decode()}")
+        thread_id = msg.get("Thread-Index", msg_id)
+
+        # Build snippet from first text/plain part
+        snippet = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    try:
+                        snippet = part.get_payload(decode=True).decode("utf-8", errors="replace")[:200]
+                    except Exception:  # noqa: BLE001
+                        pass
+                    break
+        else:
+            try:
+                snippet = msg.get_payload(decode=True).decode("utf-8", errors="replace")[:200]
+            except Exception:  # noqa: BLE001
+                pass
+
+        # Attachments
+        attachment_names = [
+            part.get_filename()
+            for part in msg.walk()
+            if part.get_content_disposition() == "attachment" and part.get_filename()
+        ]
+
+        gmail_msg = GmailMessage(
+            message_id=msg_id,
+            thread_id=thread_id,
+            subject=subject,
+            sender=sender,
+            recipient=self._config.account_email,
+            snippet=snippet[:200],
+            labels=["INBOX", "UNREAD"],
+            received_at=datetime.now(tz=timezone.utc),
+            has_attachments=bool(attachment_names),
+            attachment_names=attachment_names,
+        )
+
+        # Store UID mapping for mark_read
+        self._uid_to_msg_id[msg_id] = uid.decode()
+        return gmail_msg
+
+    def _msg_id_to_uid(self, message_id: str) -> Optional[str]:
+        return self._uid_to_msg_id.get(message_id)
+
+    @staticmethod
+    def _decode_header(value: str) -> str:
+        """Decode RFC2047-encoded header value."""
+        try:
+            parts = decode_header(value)
+            decoded = []
+            for part, charset in parts:
+                if isinstance(part, bytes):
+                    decoded.append(part.decode(charset or "utf-8", errors="replace"))
+                else:
+                    decoded.append(part)
+            return "".join(decoded)
+        except Exception:  # noqa: BLE001
+            return value
