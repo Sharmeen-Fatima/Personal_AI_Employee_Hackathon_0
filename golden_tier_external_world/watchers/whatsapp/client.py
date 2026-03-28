@@ -154,21 +154,47 @@ class MockWhatsAppClient(WhatsAppClient):
 
 
 # ---------------------------------------------------------------------------
-# RealWhatsAppClient — Phase 2 stub (raises NotImplementedError)
+# RealWhatsAppClient — Twilio WhatsApp API (LIVE)
 # ---------------------------------------------------------------------------
 
 class RealWhatsAppClient(WhatsAppClient):
     """
-    Phase 2 stub.  Will wrap a real WhatsApp Business API adapter
-    (e.g. Twilio, Meta Cloud API, or whatsapp-web.js bridge).
+    LIVE WhatsApp client backed by Twilio.
 
-    Accepts a credential_token so callers can pass the secret from
-    SecuritySkill without this class ever storing or logging it.
+    Fetches incoming WhatsApp messages from Twilio Messages API.
+    Sends messages via Twilio WhatsApp sandbox/business API.
+
+    Usage::
+
+        config = WhatsAppConfig(phone_number="+14155238886", vault_root="/vault")
+        client = RealWhatsAppClient(
+            config,
+            account_sid="ACxxxxxxxx",
+            credential_token="auth_token_here",
+        )
+        if client.health_check():
+            messages = client.fetch_messages(max_results=10)
     """
 
-    def __init__(self, config: WhatsAppConfig, credential_token: str = "") -> None:
-        self._config    = config
-        self._has_token = bool(credential_token)
+    def __init__(
+        self,
+        config: WhatsAppConfig,
+        account_sid: str = "",
+        credential_token: str = "",
+    ) -> None:
+        self._config      = config
+        self._account_sid = account_sid
+        self._auth_token  = credential_token   # never logged
+
+    def _get_twilio_client(self):
+        """Return a Twilio REST client. Raises if twilio not installed."""
+        try:
+            from twilio.rest import Client  # type: ignore
+        except ImportError as exc:
+            raise ImportError(
+                "twilio package not installed. Run: pip install twilio"
+            ) from exc
+        return Client(self._account_sid, self._auth_token)
 
     def fetch_messages(
         self,
@@ -176,15 +202,91 @@ class RealWhatsAppClient(WhatsAppClient):
         filter_chat_types: Optional[list[str]] = None,
         filter_senders: Optional[list[str]] = None,
     ) -> list[WhatsAppMessage]:
-        raise NotImplementedError(
-            "RealWhatsAppClient is a Phase 2 stub. Use MockWhatsAppClient for now."
-        )
+        """
+        Fetch inbound WhatsApp messages from Twilio Messages API.
+
+        Messages sent TO our WhatsApp number with direction='inbound'.
+        Never raises — returns empty list on any error.
+        """
+        try:
+            twilio = self._get_twilio_client()
+            wa_number = f"whatsapp:{self._config.phone_number}"
+
+            raw_messages = twilio.messages.list(
+                to=wa_number,
+                limit=max_results * 3,  # over-fetch; filter inbound below
+            )
+
+            results: list[WhatsAppMessage] = []
+            sender_filter = (
+                {s.strip() for s in filter_senders} if filter_senders else None
+            )
+
+            for msg in raw_messages:
+                if getattr(msg, "direction", "") != "inbound":
+                    continue
+
+                sender = (msg.from_ or "").replace("whatsapp:", "").strip()
+
+                if sender_filter and sender not in sender_filter:
+                    continue
+
+                # Determine message type
+                if msg.num_media and int(msg.num_media) > 0:
+                    msg_type = WhatsAppMessageType.IMAGE
+                else:
+                    msg_type = WhatsAppMessageType.TEXT
+
+                wa_msg = WhatsAppMessage(
+                    message_id=msg.sid,
+                    chat_id=sender,
+                    chat_type=WhatsAppChatType.PRIVATE,
+                    message_type=msg_type,
+                    sender_phone=sender,
+                    sender_name="",
+                    message_body=(msg.body or "")[:500],
+                    received_at=msg.date_created,
+                )
+                results.append(wa_msg)
+
+                if len(results) >= max_results:
+                    break
+
+            return results
+
+        except Exception:  # noqa: BLE001
+            return []
+
+    def send_message(self, to_number: str, body: str) -> bool:
+        """
+        Send a WhatsApp message via Twilio.
+
+        to_number: E.164 format, e.g. "+923162233896"
+        Returns True on success, False on failure. Never raises.
+        """
+        try:
+            twilio = self._get_twilio_client()
+            twilio.messages.create(
+                from_=f"whatsapp:{self._config.phone_number}",
+                to=f"whatsapp:{to_number}",
+                body=body,
+            )
+            return True
+        except Exception:  # noqa: BLE001
+            return False
 
     def send_read_receipt(self, message_id: str) -> bool:
-        raise NotImplementedError(
-            "RealWhatsAppClient is a Phase 2 stub. Use MockWhatsAppClient for now."
-        )
+        """Twilio does not support read receipts — always returns True (no-op)."""
+        return True
 
     def health_check(self) -> bool:
-        # Returns False so watchers never treat stub as healthy
-        return False
+        """
+        Return True if Twilio credentials are valid and API is reachable.
+        Never raises.
+        """
+        try:
+            twilio = self._get_twilio_client()
+            twilio.api.accounts(self._account_sid).fetch()
+            return True
+        except Exception:  # noqa: BLE001
+            return False

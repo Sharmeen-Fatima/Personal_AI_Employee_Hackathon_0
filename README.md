@@ -1,23 +1,25 @@
 # Personal AI Employee — GIAIC Hackathon 0
 
-**Status**: Silver Tier — LIVE with Real Credentials
-**Version**: 2.0.0
-**Tier**: Silver ✅
+**Status**: Gold Tier — LIVE with Real Credentials
+**Version**: 3.0.0
+**Tier**: Gold ✅
 **Author**: Sharmeen Fatima
 
 ---
 
 ## 🎯 Project Overview
 
-A local-first, autonomous **Personal AI Employee** system that monitors LinkedIn, sends emails, and posts content automatically — all while keeping humans in the loop for critical decisions.
+A local-first, autonomous **Personal AI Employee** system that monitors Gmail, LinkedIn, WhatsApp, manages Odoo ERP, and posts on Facebook, Instagram & Twitter — all with Human-in-the-Loop approval for every critical action.
 
 Built for GIAIC Hackathon using:
 - **Claude AI** as reasoning engine
-- **Selenium** for LinkedIn browser automation
+- **Playwright** for Facebook & Instagram automation (crash-free)
+- **Selenium** for LinkedIn & Twitter automation
+- **Twilio WhatsApp API** for real WhatsApp monitoring
+- **Odoo XML-RPC** for ERP invoice management
 - **Gmail SMTP/IMAP** for real email integration
 - **Obsidian Vault** as local-first knowledge store
 - **Human-in-the-Loop (HITL)** approval system (Tier 0–4)
-- **Python Watchers** for continuous monitoring
 
 ---
 
@@ -25,27 +27,51 @@ Built for GIAIC Hackathon using:
 
 | Tier | Status | Description |
 |------|--------|-------------|
-| 🥉 Bronze | ✅ Complete | Core skills, HITL, vault, watchers (mock) |
-| 🥈 Silver | ✅ Complete | Real credentials — LinkedIn + Gmail LIVE |
-| 🥇 Gold | 🔜 Next | Full autonomy, Odoo ERP, WhatsApp |
+| 🥉 Bronze | ✅ Complete | Core skills, HITL, vault, watchers |
+| 🥈 Silver | ✅ Complete | LinkedIn + Gmail LIVE |
+| 🥇 Gold | ✅ Complete | WhatsApp + Odoo + Facebook + Instagram + Twitter LIVE |
 
 ---
 
-## ⚡ Silver Tier — What Works LIVE
+## ⚡ Gold Tier — What Works LIVE
 
-### ✅ LinkedIn Watcher
-- Logs in via **Selenium Chrome** (headless or visible)
-- Fetches activity from LinkedIn inbox
-- Detects new messages and notifications
+### ✅ WhatsApp Watcher (Twilio)
+- Receives WhatsApp messages via Twilio webhook
+- Parses message content, sender, media
+- Runs HITL approval before any response
+- Saves to Obsidian vault for audit trail
+
+### ✅ Odoo ERP Integration
+- Connects to Odoo via XML-RPC (Docker or live instance)
+- Fetches invoices, creates records, updates statuses
+- Full HITL approval before any ERP write operation
+
+### ✅ Facebook Auto-Post (Playwright)
+- Persistent browser session (login once, auto-login forever)
+- Opens Facebook feed → finds "What's on your mind?" box
+- Types post content → clicks Post button → LIVE on Facebook
+- Handles popups (Review audience, notifications) automatically
+
+### ✅ Instagram Auto-Post (Playwright)
+- Persistent browser session (login once, auto-login forever)
+- Auto-generates post image via Pillow (no manual image needed)
+- Uploads image → adds caption → clicks Share → LIVE on Instagram
+
+### ✅ Twitter/X Auto-Post (Selenium)
+- 2-step login (username → password)
+- Finds tweet compose box via data-testid
+- Types tweet + hashtags → clicks Post → LIVE on X/Twitter
+
+---
+
+## 🥈 Silver Tier — What Works LIVE
 
 ### ✅ LinkedIn Auto-Post (HITL Flow)
 ```
 Draft Post → Pending Approval → Human Approves → LIVE Post on LinkedIn
 ```
-- Opens LinkedIn feed in browser
-- Finds "Start a post" via JS/Shadow DOM
-- Types content (355+ chars) + hashtags
-- Clicks Post button → Published LIVE
+- Opens LinkedIn feed via Selenium Chrome
+- Types content + hashtags → Published LIVE
 
 ### ✅ Gmail Auto-Send (HITL Flow)
 ```
@@ -53,7 +79,6 @@ Draft Email → Human Approves → Gmail SMTP → Delivered to Recipients
 ```
 - Uses Gmail App Password (SMTP TLS)
 - Sends to configured recipients automatically
-- Same HITL approval flow as LinkedIn
 
 ### ✅ Gmail IMAP Watcher
 - Fetches unread emails via IMAP SSL
@@ -68,29 +93,33 @@ Draft Email → Human Approves → Gmail SMTP → Delivered to Recipients
 Hackathon_0/
 ├── golden_tier_external_world/
 │   ├── watchers/
-│   │   ├── gmail/          # Gmail IMAP watcher + RealGmailClient
-│   │   ├── linkedin/       # LinkedIn Selenium watcher + RealLinkedInClient
-│   │   └── whatsapp/       # WhatsApp watcher (mock)
+│   │   ├── gmail/          # Gmail IMAP watcher
+│   │   ├── linkedin/       # LinkedIn Selenium watcher
+│   │   └── whatsapp/       # WhatsApp Twilio watcher (LIVE)
 │   └── actions/
+│       ├── pw_browser.py   # Shared Playwright base skill
+│       ├── facebook/       # PlaywrightFacebookPoster (LIVE)
+│       ├── instagram/      # PlaywrightInstagramPoster (LIVE)
+│       ├── twitter/        # SeleniumTwitterPoster (LIVE)
 │       ├── email/          # EmailAction + RealEmailAdapter (SMTP)
-│       ├── linkedin/       # LinkedInPoster (HITL → Selenium post)
-│       ├── browser/        # Browser MCP action
-│       └── odoo/           # Odoo ERP action (stub)
+│       ├── linkedin/       # LinkedInPoster (HITL → Selenium)
+│       └── odoo/           # Odoo ERP XML-RPC action (LIVE)
 ├── silver_tier_core_autonomy/
 │   ├── plan_loop/          # Plan-loop scheduler
 │   └── scheduler/          # Task scheduler
 ├── bronze_tier_governance/
 │   └── hitl/               # Human-in-the-Loop approval system
 ├── obsidian-vault/
-│   ├── Pending_Approval/   # Posts/emails awaiting human approval
+│   ├── Pending_Approval/   # Posts awaiting human approval
 │   ├── Approved/           # Approved and published content
 │   ├── Done/               # Completed tasks
 │   ├── Plans/              # AI-generated task plans
-│   └── 70-LOGS/            # All watcher + action logs
+│   ├── 70-LOGS/            # All screenshots + logs
+│   └── browser-sessions/   # Persistent Playwright sessions (gitignored)
 ├── history/prompts/        # Prompt History Records (PHRs)
-├── tests/                  # Unit + integration tests
-├── run_silver_live.py      # 🚀 Main Silver Tier live demo
-├── run_silver_demo.py      # Demo mode (mock credentials)
+├── run_social_live.py      # 🚀 Facebook + Instagram + Twitter LIVE
+├── run_gold_live.py        # 🚀 WhatsApp + Odoo LIVE
+├── run_silver_live.py      # 🚀 LinkedIn + Gmail LIVE
 └── .env                    # Credentials (gitignored — never commit)
 ```
 
@@ -100,39 +129,68 @@ Hackathon_0/
 
 ### 1. Install Dependencies
 ```bash
-pip install selenium webdriver-manager python-dotenv
+pip install selenium webdriver-manager python-dotenv playwright pillow
+playwright install chromium
 ```
 
 ### 2. Configure Credentials
 Create `.env` file (never commit this):
 ```env
+# Gmail
 GMAIL_ACCOUNT_EMAIL=your@gmail.com
 GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+EMAIL_RECIPIENTS=friend@gmail.com
+
+# LinkedIn
 LINKEDIN_EMAIL=your@gmail.com
 LINKEDIN_PASSWORD=yourpassword
 LINKEDIN_PROFILE_URL=https://www.linkedin.com/in/your-name/
-EMAIL_RECIPIENTS=friend@gmail.com,colleague@outlook.com
+
+# Twitter/X
+TWITTER_EMAIL=your@gmail.com
+TWITTER_PASSWORD=yourpassword
+TWITTER_USERNAME=your_handle
+
+# Facebook
+FACEBOOK_EMAIL=your@gmail.com
+FACEBOOK_PASSWORD=yourpassword
+
+# Instagram
+INSTAGRAM_USERNAME=your_handle
+INSTAGRAM_PASSWORD=yourpassword
+
+# WhatsApp (Twilio)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+
+# Odoo
+ODOO_URL=http://localhost:8069
+ODOO_DB=odoo
+ODOO_USERNAME=admin
+ODOO_PASSWORD=admin
 ```
 
-**Gmail App Password setup:**
-1. Google Account → Security → 2-Step Verification → ON
-2. Security → App Passwords → Mail → Generate
-3. Copy 16-digit password to `.env`
-
-**Gmail IMAP setup:**
-- Gmail → Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP → Save
-
-### 3. Run Silver Tier Demo
+### 3. Run Social Media Tier
 ```bash
-python run_silver_live.py
+python run_social_live.py
 ```
 
 **What happens:**
 ```
-STEP 1 — Gmail IMAP:     Connect → Fetch unread emails → Watcher tick
-STEP 2 — LinkedIn Watch: Login → Fetch activity → Watcher tick
-STEP 3 — LinkedIn Post:  Draft → HITL Approve → POST LIVE on LinkedIn
-STEP 4 — Gmail Send:     Draft → HITL Approve → Email sent to recipients
+STEP 1 — Facebook:   Persistent session → Feed → Post LIVE
+STEP 2 — Twitter:    Login → Compose → Tweet LIVE
+STEP 3 — Instagram:  Persistent session → Create → Upload image → Post LIVE
+```
+
+### 4. Run Gold Tier (WhatsApp + Odoo)
+```bash
+python run_gold_live.py
+```
+
+### 5. Run Silver Tier (LinkedIn + Gmail)
+```bash
+python run_silver_live.py
 ```
 
 ---
@@ -147,71 +205,45 @@ STEP 4 — Gmail Send:     Draft → HITL Approve → Email sent to recipients
 | 3 | High risk | Human required |
 | 4 | Critical | Human + audit |
 
-LinkedIn posts and emails run through **Tier 2 HITL** — human approval simulated in demo, real in production.
+All social media posts run through **Tier 2 HITL** before publishing.
 
 ---
 
-## 🛠️ Skills Inventory (12 Skills)
+## 🛠️ Key Technical Highlights
 
-### Core
-- `FILESYSTEM_AUTOMATION_SKILL` — Vault file operations
-- `ORCHESTRATOR_SYSTEM_SKILL` — Multi-skill coordination
-- `RALPH_WIGGUM_LOOP_SKILL` — Continuous operation loop
-
-### Watchers
-- `BASE_WATCHER_CREATION_SKILL` — Watcher framework
-- `GMAIL_WATCHER_SKILL` — Email monitoring (LIVE via IMAP)
-- `WHATSAPP_WATCHER_SKILL` — WhatsApp monitoring
-
-### Actions
-- `EMAIL_MCP_ACTION_SKILL` — Email sending (LIVE via SMTP)
-- `BROWSER_MCP_SKILL` — Web automation (Selenium)
-- `ODOO_MCP_INTEGRATION_SKILL` — ERP integration
-
-### Safety
-- `HUMAN_IN_THE_LOOP_APPROVAL_SKILL` — HITL workflow
-- `SECURITY_AND_CREDENTIAL_MANAGEMENT_SKILL` — Security controls
-
-### Business
-- `CEO_WEEKLY_AUDIT_SKILL` — Weekly reporting
+- **Playwright persistent sessions** — Facebook & Instagram login once, session saved to disk, auto-login on every future run. No passwords re-entered, no 2FA every time.
+- **Subprocess isolation** — Each social platform runs in its own Python subprocess so browser crashes don't affect other platforms.
+- **Auto-image generation** — Instagram requires an image; Pillow generates a branded post image automatically if none provided.
+- **Shadow DOM traversal** — LinkedIn's post editor is inside Shadow DOM; found via JS `createTreeWalker`.
+- **React event dispatch** — After typing, dispatches `input`/`change`/`keyup` events to enable Post button (React state update).
+- **Fail-safe HITL** — Every action returns structured result dict, never raises exceptions.
 
 ---
 
-## 📊 Current Status
+## 📊 Current Status — Gold Tier Complete
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Constitution | ✅ Complete | v1.0.0 ratified |
-| Vault Structure | ✅ Complete | All sections operational |
-| HITL System | ✅ Complete | Tiers 0–4 working |
-| Gmail IMAP Watcher | ✅ LIVE | Real IMAP connection |
+| Gmail IMAP Watcher | ✅ LIVE | Real IMAP |
 | Gmail SMTP Sender | ✅ LIVE | Real email delivery |
 | LinkedIn Watcher | ✅ LIVE | Selenium Chrome |
 | LinkedIn Auto-Post | ✅ LIVE | Shadow DOM posting |
-| Plan Loop Scheduler | ✅ Complete | Silver Tier scheduler |
-| WhatsApp Watcher | 🔜 Gold Tier | Stub ready |
-| Odoo ERP | 🔜 Gold Tier | Stub ready |
+| WhatsApp Watcher | ✅ LIVE | Twilio webhook |
+| Odoo ERP | ✅ LIVE | XML-RPC integration |
+| Twitter/X Post | ✅ LIVE | Selenium — tweets working |
+| Facebook Post | ✅ LIVE | Playwright — persistent session |
+| Instagram Post | ✅ LIVE | Playwright — auto image + persistent session |
+| HITL System | ✅ Complete | Tiers 0–4 |
+| Obsidian Vault | ✅ Complete | Full audit trail |
 
 ---
 
-## 🔬 Technical Highlights
+## 📸 Live Evidence
 
-- **Shadow DOM traversal** — LinkedIn's post editor is inside Shadow DOM; found via JS `createTreeWalker` + recursive shadow root search
-- **React event dispatch** — After typing, dispatches `input`/`change`/`keyup` events to enable Post button (React state update)
-- **IMAP + SMTP** — Same Gmail App Password works for both reading (IMAP SSL:993) and sending (SMTP STARTTLS:587)
-- **Fail-safe HITL** — Every action goes through approval; failures return structured results, never raise exceptions
-
----
-
-## 📖 Logs & Vault
-
-```
-obsidian-vault/Pending_Approval/   ← Posts/emails awaiting approval
-obsidian-vault/Approved/           ← Approved content
-obsidian-vault/70-LOGS/            ← All system logs
-obsidian-vault/70-LOGS/linkedin_feed_screenshot.png
-obsidian-vault/70-LOGS/linkedin_after_click.png
-```
+Screenshots auto-saved in `obsidian-vault/70-LOGS/`:
+- `facebook_posted.png` — Facebook LIVE post confirmation
+- `instagram_posted.png` — Instagram upload in progress
+- `twitter_posted.png` — Tweet posted on X/Twitter
 
 ---
 
@@ -221,6 +253,6 @@ Personal project for GIAIC Hackathon 0.
 
 ---
 
-**Last Updated**: 2026-03-20
-**Tier**: Silver (LIVE with Real Credentials)
-**Next Milestone**: Gold Tier — WhatsApp + Odoo + Full Autonomy
+**Last Updated**: 2026-03-28
+**Tier**: Gold (LIVE with Real Credentials — All Platforms)
+**Author**: Sharmeen Fatima — Creative Coderr

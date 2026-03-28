@@ -277,25 +277,201 @@ class MockOdooAdapter(OdooAdapter):
 
 
 # ---------------------------------------------------------------------------
-# RealOdooAdapter — Phase 2 stub (raises NotImplementedError)
+# RealOdooAdapter — Odoo XML-RPC LIVE integration
 # ---------------------------------------------------------------------------
 
 class RealOdooAdapter(OdooAdapter):
     """
-    Phase 2 stub.  Will wrap Odoo XML-RPC / JSON-RPC client.
+    LIVE Odoo adapter backed by Odoo XML-RPC API.
 
-    Accepts credential_token so callers can pass the Odoo API key from
-    SecuritySkill without this class ever storing or logging it.
+    Connects to Odoo via standard XML-RPC endpoints:
+      - /xmlrpc/2/common  → authentication + version
+      - /xmlrpc/2/object  → model operations (create / write / read)
+
+    credential_token = Odoo user password (never logged).
+
+    Usage::
+
+        config = OdooConfig(
+            odoo_url="http://localhost:8069",
+            database="mycompany",
+        )
+        adapter = RealOdooAdapter(config, username="admin", credential_token="admin123")
+        if adapter.health_check():
+            req = make_create_request("res.partner", {"name": "Alice"})
+            result = adapter.execute(req)
     """
 
-    def __init__(self, config: "OdooConfig", credential_token: str = "") -> None:  # noqa: F821
-        # credential_token intentionally not stored persistently
-        self._has_token = bool(credential_token)
+    def __init__(
+        self,
+        config: OdooConfig,
+        username: str = "admin",
+        credential_token: str = "",
+    ) -> None:
+        self._config   = config
+        self._username = username
+        self._password = credential_token  # never logged
+        self._uid: Optional[int] = None
 
-    def execute(self, request: OdooRequest) -> OdooResult:
-        raise NotImplementedError(
-            "RealOdooAdapter is a Phase 2 stub. Use MockOdooAdapter for now."
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _common(self):
+        import xmlrpc.client
+        return xmlrpc.client.ServerProxy(
+            f"{self._config.odoo_url}/xmlrpc/2/common"
         )
 
+    def _models(self):
+        import xmlrpc.client
+        return xmlrpc.client.ServerProxy(
+            f"{self._config.odoo_url}/xmlrpc/2/object"
+        )
+
+    def _authenticate(self) -> int:
+        """Authenticate and cache UID. Returns user ID (int > 0) or raises."""
+        if self._uid is not None:
+            return self._uid
+        uid = self._common().authenticate(
+            self._config.database,
+            self._username,
+            self._password,
+            {},
+        )
+        if not uid:
+            raise RuntimeError(
+                "Odoo authentication failed — check ODOO_USERNAME / ODOO_PASSWORD / ODOO_DB"
+            )
+        self._uid = int(uid)
+        return self._uid
+
+    # ------------------------------------------------------------------
+    # OdooAdapter interface
+    # ------------------------------------------------------------------
+
     def health_check(self) -> bool:
-        return False  # Not healthy until Phase 2
+        """
+        Return True if Odoo is reachable and credentials are valid.
+        Never raises.
+        """
+        try:
+            version = self._common().version()
+            if not version:
+                return False
+            # Also verify credentials by authenticating
+            uid = self._common().authenticate(
+                self._config.database,
+                self._username,
+                self._password,
+                {},
+            )
+            return bool(uid)
+        except Exception:  # noqa: BLE001
+            return False
+
+    def execute(self, request: OdooRequest) -> OdooResult:
+        """
+        Execute an Odoo operation via XML-RPC.
+
+        Supports: CREATE_RECORD, UPDATE_RECORD, FETCH_RECORD.
+        Never raises — errors returned as OdooResult with status=FAILED.
+        """
+        try:
+            uid    = self._authenticate()
+            models = self._models()
+            db     = self._config.database
+            pwd    = self._password
+
+            if request.operation == OdooOperation.CREATE_RECORD:
+                record_id = models.execute_kw(
+                    db, uid, pwd,
+                    request.model, "create",
+                    [request.data],
+                )
+                # Fetch the newly created record
+                records = models.execute_kw(
+                    db, uid, pwd,
+                    request.model, "read",
+                    [[int(record_id)]],
+                )
+                return OdooResult(
+                    request_id=request.request_id,
+                    operation=request.operation,
+                    status=OdooActionStatus.SUCCESS,
+                    model=request.model,
+                    record_id=int(record_id),
+                    record_data=records[0] if records else {},
+                    adapter="real_odoo",
+                    executed_at=datetime.now(tz=timezone.utc),
+                )
+
+            elif request.operation == OdooOperation.UPDATE_RECORD:
+                models.execute_kw(
+                    db, uid, pwd,
+                    request.model, "write",
+                    [[request.record_id], request.data],
+                )
+                records = models.execute_kw(
+                    db, uid, pwd,
+                    request.model, "read",
+                    [[request.record_id]],
+                )
+                return OdooResult(
+                    request_id=request.request_id,
+                    operation=request.operation,
+                    status=OdooActionStatus.SUCCESS,
+                    model=request.model,
+                    record_id=request.record_id,
+                    record_data=records[0] if records else {},
+                    adapter="real_odoo",
+                    executed_at=datetime.now(tz=timezone.utc),
+                )
+
+            elif request.operation == OdooOperation.FETCH_RECORD:
+                records = models.execute_kw(
+                    db, uid, pwd,
+                    request.model, "read",
+                    [[request.record_id]],
+                )
+                if not records:
+                    return OdooResult(
+                        request_id=request.request_id,
+                        operation=request.operation,
+                        status=OdooActionStatus.NOT_FOUND,
+                        model=request.model,
+                        record_id=request.record_id,
+                        error=f"Record {request.model}:{request.record_id} not found.",
+                        adapter="real_odoo",
+                    )
+                return OdooResult(
+                    request_id=request.request_id,
+                    operation=request.operation,
+                    status=OdooActionStatus.SUCCESS,
+                    model=request.model,
+                    record_id=request.record_id,
+                    record_data=records[0],
+                    adapter="real_odoo",
+                    executed_at=datetime.now(tz=timezone.utc),
+                )
+
+            else:
+                return OdooResult(
+                    request_id=request.request_id,
+                    operation=request.operation,
+                    status=OdooActionStatus.FAILED,
+                    model=request.model,
+                    error=f"Unsupported operation: {request.operation!r}",
+                    adapter="real_odoo",
+                )
+
+        except Exception as exc:  # noqa: BLE001
+            return OdooResult(
+                request_id=request.request_id,
+                operation=request.operation,
+                status=OdooActionStatus.FAILED,
+                model=request.model,
+                record_id=request.record_id,
+                error=str(exc),
+                adapter="real_odoo",
+            )

@@ -37,3 +37,9 @@ htmlcov/
 
 # Logs (keep structure, ignore raw cache)
 *.log
+
+# Playwright browser sessions (contain login cookies — never commit)
+obsidian-vault/browser-sessions/
+
+# WhatsApp watcher message cache
+obsidian-vault/watchers/
