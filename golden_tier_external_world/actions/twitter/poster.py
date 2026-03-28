@@ -366,7 +366,7 @@ class PlaywrightTwitterPoster:
                 pass
 
             if compose_box is None:
-                # JS fallback — placeholder text se dhundo
+                # JS fallback — placeholder text se dhundo, ElementHandle return karo
                 compose_box = page.evaluate_handle("""
                     () => {
                         var walker = document.createTreeWalker(
@@ -381,7 +381,7 @@ class PlaywrightTwitterPoster:
                         }
                         return null;
                     }
-                """)
+                """).as_element()
                 if compose_box:
                     print("   ✅ Compose box mila (JS placeholder walker)")
 
