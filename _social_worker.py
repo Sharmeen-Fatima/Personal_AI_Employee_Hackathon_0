@@ -59,12 +59,12 @@ def run_facebook():
 
 
 def run_twitter():
-    from golden_tier_external_world.actions.twitter.poster import SeleniumTwitterPoster
+    from golden_tier_external_world.actions.twitter.poster import PlaywrightTwitterPoster
     email    = os.environ.get("TWITTER_EMAIL", "").strip()
     password = os.environ.get("TWITTER_PASSWORD", "").strip()
     username = os.environ.get("TWITTER_USERNAME", "").strip()
 
-    poster = SeleniumTwitterPoster(
+    poster = PlaywrightTwitterPoster(
         email=email, password=password, username=username,
         headless=False, log_dir=LOG_DIR,
     )

@@ -1,3 +1,3 @@
-from .poster import SeleniumTwitterPoster
+from .poster import PlaywrightTwitterPoster
 
-__all__ = ["SeleniumTwitterPoster"]
+__all__ = ["PlaywrightTwitterPoster"]
