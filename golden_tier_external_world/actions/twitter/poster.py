@@ -178,13 +178,15 @@ class PlaywrightTwitterPoster:
             page.goto("https://x.com/i/flow/login", wait_until="domcontentloaded", timeout=20_000)
             page.wait_for_timeout(3_000)
 
-            # --- Step 1: Email ---
+            # --- Step 1: Email/Username ---
             print("   📧 Email enter kar raha hai...")
             try:
                 email_field = page.wait_for_selector(
                     "input[autocomplete='username'], input[name='text']",
                     timeout=15_000
                 )
+                email_field.click()
+                page.wait_for_timeout(500)
                 email_field.fill(self._email)
                 page.wait_for_timeout(1_000)
             except Exception as exc:
@@ -192,23 +194,68 @@ class PlaywrightTwitterPoster:
                 self._screenshot("twitter_step1_fail.png")
                 return False
 
-            # Next button
-            self._click_button_with_text(["Next"])
-            page.wait_for_timeout(3_000)
+            # Twitter-specific Next button (data-testid pehle try karo)
+            next_clicked = False
+            for sel in [
+                "[data-testid='LoginForm_Login_Button']",
+                "button:has-text('Next')",
+                "[role='button']:has-text('Next')",
+            ]:
+                try:
+                    page.click(sel, timeout=5_000)
+                    next_clicked = True
+                    break
+                except Exception:
+                    pass
+            if not next_clicked:
+                # JS fallback
+                page.evaluate("""
+                    var els = document.querySelectorAll('button, [role="button"]');
+                    for (var el of els) {
+                        if ((el.innerText || '').trim() === 'Next') { el.click(); break; }
+                    }
+                """)
+
+            # Next ke baad WAIT — koi bhi field aane tak (password ya confirmation)
+            print("   ⏳ Next page load ho rahi hai...")
+            try:
+                page.wait_for_selector(
+                    "input[name='password'], "
+                    "input[type='password'], "
+                    "input[data-testid='ocfEnterTextTextInput']",
+                    timeout=15_000
+                )
+            except Exception:
+                pass  # age try karte hain
+
             self._screenshot("twitter_step1.png")
 
-            # --- Step 2.5: Unusual activity check (username confirm) ---
+            # --- Step 2.5: Unusual activity / username confirm ---
             try:
-                confirm = page.query_selector(
-                    "input[data-testid='ocfEnterTextTextInput'], "
-                    "input[name='text'][autocomplete='on']"
-                )
+                confirm = page.query_selector("input[data-testid='ocfEnterTextTextInput']")
                 if confirm and confirm.is_visible():
                     print("   ⚠️  Unusual activity check — username enter kar raha hoon...")
+                    confirm.click()
+                    page.wait_for_timeout(300)
                     confirm.fill(self._username or self._email)
                     page.wait_for_timeout(1_000)
-                    self._click_button_with_text(["Next"])
-                    page.wait_for_timeout(3_000)
+                    for sel in [
+                        "[data-testid='ocfEnterTextNextButton']",
+                        "button:has-text('Next')",
+                    ]:
+                        try:
+                            page.click(sel, timeout=5_000)
+                            break
+                        except Exception:
+                            pass
+                    # Password field aane ka wait
+                    try:
+                        page.wait_for_selector(
+                            "input[name='password'], input[type='password']",
+                            timeout=15_000
+                        )
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -219,6 +266,8 @@ class PlaywrightTwitterPoster:
                     "input[name='password'], input[type='password']",
                     timeout=15_000
                 )
+                pwd_field.click()
+                page.wait_for_timeout(300)
                 pwd_field.fill(self._password)
                 page.wait_for_timeout(1_000)
             except Exception as exc:
@@ -226,8 +275,28 @@ class PlaywrightTwitterPoster:
                 self._screenshot("twitter_pwd_fail.png")
                 return False
 
-            # Log in button
-            self._click_button_with_text(["Log in", "Login"])
+            # Log in button — Twitter-specific data-testid pehle
+            login_clicked = False
+            for sel in [
+                "[data-testid='LoginForm_Login_Button']",
+                "button:has-text('Log in')",
+                "[role='button']:has-text('Log in')",
+            ]:
+                try:
+                    page.click(sel, timeout=5_000)
+                    login_clicked = True
+                    break
+                except Exception:
+                    pass
+            if not login_clicked:
+                page.evaluate("""
+                    var els = document.querySelectorAll('button, [role="button"]');
+                    for (var el of els) {
+                        var t = (el.innerText || '').trim();
+                        if (t === 'Log in' || t === 'Login') { el.click(); break; }
+                    }
+                """)
+
             print("   ⏳ Login ho rahi hai...")
             page.wait_for_timeout(8_000)
 
