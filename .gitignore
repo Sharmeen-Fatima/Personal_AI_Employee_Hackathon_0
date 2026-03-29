@@ -40,6 +40,10 @@ htmlcov/
 
 # Playwright browser sessions (contain login cookies — never commit)
 obsidian-vault/browser-sessions/
+wa_session/
+
+# WhatsApp debug screenshots (temp files)
+wa_*.png
 
 # WhatsApp watcher message cache
 obsidian-vault/watchers/

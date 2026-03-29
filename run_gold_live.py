@@ -1,7 +1,7 @@
 """
 Gold Tier — LIVE Demo (Real Credentials + Visual Browser)
 ==========================================================
-WhatsApp: Twilio API se messages fetch + send karta hai (terminal visual).
+WhatsApp: Playwright WhatsApp Web — apna phone, koi Twilio nahi.
 Odoo ERP: XML-RPC se records banata hai + Playwright browser mein LIVE dikhata hai.
 
 Usage:
@@ -18,15 +18,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
-TWILIO_SID       = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
-TWILIO_TOKEN     = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
-TWILIO_WA_NUMBER = os.environ.get("TWILIO_WHATSAPP_NUMBER", "").strip()
-YOUR_WA_NUMBER   = os.environ.get("YOUR_WHATSAPP_NUMBER", "").strip()
+# WhatsApp — Playwright Web (no Twilio)
+WA_BROADCAST_NUMBERS = os.environ.get("WA_BROADCAST_NUMBERS", "").strip()
+WA_SESSION_DIR       = os.environ.get("WA_SESSION_DIR", "wa_session").strip()
 
-ODOO_URL         = os.environ.get("ODOO_URL", "http://localhost:8069").strip()
-ODOO_DB          = os.environ.get("ODOO_DB", "odoo").strip()
-ODOO_USERNAME    = os.environ.get("ODOO_USERNAME", "admin").strip()
-ODOO_PASSWORD    = os.environ.get("ODOO_PASSWORD", "admin").strip()
+ODOO_URL      = os.environ.get("ODOO_URL",      "http://localhost:8069").strip()
+ODOO_DB       = os.environ.get("ODOO_DB",       "odoo").strip()
+ODOO_USERNAME = os.environ.get("ODOO_USERNAME", "admin").strip()
+ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD", "admin").strip()
 
 VAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "obsidian-vault")
 
@@ -167,128 +166,94 @@ class OdooBrowser:
 print()
 print("╔" + "═" * 58 + "╗")
 print("║      GOLD TIER — Live Demo (Visual Mode)                ║")
-print("║      WhatsApp + Odoo ERP — Real Credentials             ║")
+print("║      WhatsApp (Playwright) + Odoo ERP                   ║")
 print("╚" + "═" * 58 + "╝")
 
 # ─── Credential Check ───────────────────────────────────────
 step_header("🔑 CREDENTIAL CHECK")
-print(f"   Twilio SID      : {TWILIO_SID[:8]}...{'✅' if TWILIO_SID else '❌'}")
-print(f"   Twilio Token    : {'✅ set' if TWILIO_TOKEN else '❌ NOT SET'}")
-print(f"   Twilio WA No.   : {TWILIO_WA_NUMBER or '❌ NOT SET'}")
-print(f"   Your WA Number  : {YOUR_WA_NUMBER or '❌ NOT SET'}")
-print(f"   Odoo URL        : {ODOO_URL}")
-print(f"   Odoo DB         : {ODOO_DB}")
-print(f"   Odoo Username   : {ODOO_USERNAME}")
-print(f"   Odoo Password   : {'✅ set' if ODOO_PASSWORD else '❌ NOT SET'}")
+wa_numbers = [n.strip() for n in WA_BROADCAST_NUMBERS.split(",") if n.strip()]
+print(f"   WhatsApp Numbers : {len(wa_numbers)} number(s) configured")
+for n in wa_numbers:
+    print(f"      → {n}")
+if not wa_numbers:
+    print(f"   WhatsApp Numbers : ⚠️  WA_BROADCAST_NUMBERS not set in .env")
+print(f"   WA Session Dir   : {WA_SESSION_DIR}")
+print(f"   Odoo URL         : {ODOO_URL}")
+print(f"   Odoo DB          : {ODOO_DB}")
+print(f"   Odoo Username    : {ODOO_USERNAME}")
+print(f"   Odoo Password    : {'✅ set' if ODOO_PASSWORD else '❌ NOT SET'}")
 
-missing = []
-if not TWILIO_SID:    missing.append("TWILIO_ACCOUNT_SID")
-if not TWILIO_TOKEN:  missing.append("TWILIO_AUTH_TOKEN")
-if not TWILIO_WA_NUMBER: missing.append("TWILIO_WHATSAPP_NUMBER")
-
-if missing:
-    print(f"\n   ❌ Missing: {', '.join(missing)}")
-    sys.exit(1)
-
-print("\n   ✅ All credentials loaded.")
+print("\n   ✅ Config loaded. (WhatsApp uses Playwright — no Twilio needed)")
 time.sleep(0.5)
 
 
 # ═══════════════════════════════════════════════════════════════
-# STEP 1 — WhatsApp Twilio (Terminal Visual)
+# STEP 1 — WhatsApp Playwright Web (no Twilio)
 # ═══════════════════════════════════════════════════════════════
 
-step_header("💬 STEP 1: WhatsApp — Twilio Live")
+step_header("💬 STEP 1: WhatsApp — Playwright Web (no Twilio)")
 
-from golden_tier_external_world.watchers.whatsapp.client import RealWhatsAppClient
 from golden_tier_external_world.watchers.whatsapp.models import WhatsAppConfig
-from golden_tier_external_world.watchers.whatsapp.watcher import WhatsAppWatcher
+from golden_tier_external_world.watchers.whatsapp.client import PlaywrightWhatsAppClient
 
-wa_config = WhatsAppConfig(
-    phone_number=TWILIO_WA_NUMBER,
-    vault_root=VAULT,
-    max_results=10,
-    poll_interval_secs=30.0,
-    send_read_receipts=False,
-)
-wa_client = RealWhatsAppClient(
-    wa_config,
-    account_sid=TWILIO_SID,
-    credential_token=TWILIO_TOKEN,
-)
+wa_sent_ok    = False
+wa_sent_count = 0
 
-ticker("   🔌 Twilio API se connect ho raha hoon...")
-time.sleep(0.3)
-wa_healthy = wa_client.health_check()
-
-if wa_healthy:
-    ticker("   ✅ WhatsApp Sandbox CONNECTED!")
-else:
-    ticker("   ❌ Twilio connection failed.")
-
-wa_messages_found = 0
-if wa_healthy:
-    time.sleep(0.3)
-    ticker("   📬 Inbound messages fetch ho rahe hain...")
-    wa_messages = wa_client.fetch_messages(max_results=10)
-    wa_messages_found = len(wa_messages)
-
-    if wa_messages:
-        print(f"   📨 {wa_messages_found} message(s) mila!")
-        for i, msg in enumerate(wa_messages[:3], 1):
-            print(f"      {i}. From: {msg.sender_phone}")
-            print(f"         {(msg.message_body or '(media)')[:60]}")
-    else:
-        print(f"   📭 Koi inbound message nahi abhi tak")
-        print(f"   💡 Yeh number pe WhatsApp bhejo: {TWILIO_WA_NUMBER}")
-
-    time.sleep(0.3)
-    ticker("   ⚙️  WhatsApp Watcher tick chal raha hai...")
-    wa_watcher = WhatsAppWatcher(wa_config, client=wa_client)
-    wa_watcher.start()
-    wa_tick = wa_watcher.tick()
-    print(f"   {'✅' if wa_tick.health_ok else '❌'} Watcher: health={'OK' if wa_tick.health_ok else 'FAIL'} | events={wa_tick.events_found}")
-
-# WhatsApp Send
-print()
-step_header("📤 STEP 2: WhatsApp — Message Bhejna")
-
-wa_sent_ok = False
-if not wa_healthy:
-    print("   ⚠️  Skipped (Twilio not connected)")
-elif not YOUR_WA_NUMBER:
-    print("   ⚠️  YOUR_WHATSAPP_NUMBER .env mein set nahi")
+if not wa_numbers:
+    print("   ⚠️  WA_BROADCAST_NUMBERS .env mein set nahi — skipping WhatsApp")
 else:
     test_message = (
         "🤖 GIAIC Hackathon 2026 — Personal AI Employee\n"
         "Gold Tier LIVE chal raha hai!\n"
         "WhatsApp + Odoo ERP + Facebook + Instagram + Twitter\n"
-        "Sab kuch Python + Playwright + Claude AI se.\n"
+        "Sab kuch Python + Playwright + Claude AI se. (No Twilio!)\n"
         "— Personal AI Employee System"
     )
 
-    print(f"   📱 To   : {YOUR_WA_NUMBER}")
-    print(f"   📱 From : {TWILIO_WA_NUMBER}")
+    print(f"   📱 To    : {', '.join(wa_numbers)}")
     print()
     ticker("   ✍️  Message compose ho rahi hai...")
-    time.sleep(0.5)
+    time.sleep(0.3)
     print(f"   ┌─ Message Preview ───────────────────────────────┐")
     for line in test_message.split("\n"):
         print(f"   │ {line:<50}│")
     print(f"   └─────────────────────────────────────────────────┘")
 
-    time.sleep(0.5)
-    ticker("   👤 HITL Approval check kar raha hoon...")
-    time.sleep(0.5)
-    ticker("   ✅ APPROVED — message bhej raha hoon...")
-    time.sleep(0.3)
+    print()
+    ticker("   🌐 Playwright browser launch ho raha hai...")
+    wa_cfg    = WhatsAppConfig(phone_number="self", vault_root=VAULT)
+    wa_client = PlaywrightWhatsAppClient(wa_cfg, session_dir=WA_SESSION_DIR)
 
-    wa_sent_ok = wa_client.send_message(YOUR_WA_NUMBER, test_message)
-    if wa_sent_ok:
-        ticker("   🚀 WhatsApp message SENT!")
-        print(f"   📱 Check karo apna WhatsApp: {YOUR_WA_NUMBER}")
+    browser_ok = wa_client.launch()
+    if not browser_ok:
+        print("   ❌ Browser launch failed — playwright install karo")
     else:
-        print("   ❌ Send failed — sandbox join karo ya number check karo")
+        web_ok = wa_client.open_wa_web()
+        if not web_ok:
+            print("   ❌ WhatsApp Web load nahi hua")
+            wa_client.close()
+        else:
+            ticker("   ✅ WhatsApp Web ready!")
+            time.sleep(0.3)
+            ticker("   👤 HITL Approval check kar raha hoon...")
+            time.sleep(0.5)
+            ticker("   ✅ APPROVED — broadcast bhej raha hoon...")
+
+            for number in wa_numbers:
+                ticker(f"   📤 Bhej raha hoon → {number}...")
+                ok = wa_client.send_message(number, test_message)
+                if ok:
+                    wa_sent_count += 1
+                    ticker(f"   ✅ SENT! → {number}")
+                else:
+                    print(f"   ❌ Failed → {number}")
+                time.sleep(2)
+
+            wa_sent_ok = wa_sent_count > 0
+            wa_client.close()
+
+            if wa_sent_ok:
+                ticker(f"   🚀 WhatsApp broadcast done! {wa_sent_count}/{len(wa_numbers)} sent.")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -443,16 +408,14 @@ print("╔" + "═" * 58 + "╗")
 print("║       GOLD TIER — Live Demo Complete!                   ║")
 print("╚" + "═" * 58 + "╝")
 
-wa_icon = "✅" if wa_healthy else "❌"
-ws_icon = "✅" if wa_sent_ok else "⚠️ "
+wa_icon = "✅" if wa_sent_ok else ("⚠️ " if not wa_numbers else "❌")
 od_icon = "✅" if odoo_healthy else "❌"
 
 print(f"""
-   {wa_icon} WhatsApp Watcher  — {'Connected, ' + str(wa_messages_found) + ' messages' if wa_healthy else 'Failed'}
-   {ws_icon} WhatsApp Send     — {'Message sent to ' + YOUR_WA_NUMBER if wa_sent_ok else 'Skipped'}
-   {od_icon} Odoo ERP          — {'Record #' + str(odoo_record_id) + ' created + updated (browser mein dikha)' if odoo_record_id else ('Connected' if odoo_healthy else 'Not connected')}
+   {wa_icon} WhatsApp Broadcast — {'Sent to ' + str(wa_sent_count) + '/' + str(len(wa_numbers)) + ' numbers (Playwright, no Twilio)' if wa_numbers else 'Skipped (set WA_BROADCAST_NUMBERS in .env)'}
+   {od_icon} Odoo ERP           — {'Record #' + str(odoo_record_id) + ' created + updated (browser mein dikha)' if odoo_record_id else ('Connected' if odoo_healthy else 'Not connected')}
 
    📸 Screenshots: obsidian-vault/70-LOGS/odoo_*.png
 
-   🏆 Gold Tier: WhatsApp + Odoo ERP LIVE (Visual Mode)
+   🏆 Gold Tier: WhatsApp (Playwright) + Odoo ERP LIVE (Visual Mode)
 """)

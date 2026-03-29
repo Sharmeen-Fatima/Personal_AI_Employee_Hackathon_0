@@ -30,7 +30,7 @@ from ..base import (
     WatcherEvent,
     WatcherTickResult,
 )
-from .client import MockWhatsAppClient, RealWhatsAppClient, WhatsAppClient
+from .client import MockWhatsAppClient, PlaywrightWhatsAppClient, WhatsAppClient
 from .handlers import (
     make_filter_handler,
     make_group_filter,
@@ -203,7 +203,7 @@ __all__ = [
     # Clients
     "WhatsAppClient",
     "MockWhatsAppClient",
-    "RealWhatsAppClient",
+    "PlaywrightWhatsAppClient",
     # Watcher
     "WhatsAppWatcher",
     # Handlers
