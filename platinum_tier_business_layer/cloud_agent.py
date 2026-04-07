@@ -99,9 +99,8 @@ def fetch_unread_emails() -> list[dict]:
 def draft_reply(email: dict) -> str:
     """Generate a draft reply using Gemini API (free tier)."""
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        from google import genai
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
         prompt = f"""You are an AI assistant drafting a professional email reply on behalf of the user.
 
@@ -112,7 +111,10 @@ Body: {email['body']}
 
 Write a concise, professional reply. Keep it under 150 words. Do not include subject line."""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         return response.text.strip()
 
     except Exception as e:
