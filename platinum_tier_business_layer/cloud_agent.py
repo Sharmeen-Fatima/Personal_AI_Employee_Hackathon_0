@@ -97,10 +97,10 @@ def fetch_unread_emails() -> list[dict]:
 
 # ── Draft writer ───────────────────────────────────────────────────────────────
 def draft_reply(email: dict) -> str:
-    """Generate a draft reply using Gemini API (free tier)."""
+    """Generate a draft reply using Groq API (free tier)."""
     try:
-        from google import genai
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        from groq import Groq
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
         prompt = f"""You are an AI assistant drafting a professional email reply on behalf of the user.
 
@@ -111,11 +111,12 @@ Body: {email['body']}
 
 Write a concise, professional reply. Keep it under 150 words. Do not include subject line."""
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
         )
-        return response.text.strip()
+        return response.choices[0].message.content.strip()
 
     except Exception as e:
         log.error(f"Draft generation failed: {e}")
