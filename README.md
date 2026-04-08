@@ -1,8 +1,8 @@
 # Personal AI Employee — GIAIC Hackathon 0
 
-**Status**: Gold Tier — 100% Complete ✅
-**Version**: 4.0.0
-**Tier**: Gold 🥇
+**Status**: Platinum Tier — In Progress 🚀
+**Version**: 5.0.0
+**Tier**: Platinum 💎
 **Author**: Sharmeen Fatima — Creative Coderr
 
 ---
@@ -30,6 +30,68 @@ Built for GIAIC Hackathon 0 using:
 | 🥉 Bronze | ✅ Complete | Core skills, HITL, vault, file watchers, Agent Skills |
 | 🥈 Silver | ✅ Complete | Gmail + LinkedIn LIVE, Plan.md loop, Email MCP, HITL workflow |
 | 🥇 Gold | ✅ Complete | WhatsApp + Odoo + FB + IG + Twitter + MCP Servers + CEO Audit |
+| 💎 Platinum | 🔄 In Progress | Cloud Agent (24/7) + Local Agent + Vault Sync + Odoo Cloud |
+
+---
+
+## 💎 Platinum Tier — Always-On Cloud + Local Executive
+
+### Architecture
+```
+┌─────────────────────────────┐     ┌──────────────────────────────┐
+│   ☁️  CLOUD (GitHub Codespaces) │     │   💻 LOCAL (PC)              │
+│                             │     │                              │
+│  cloud_agent.py             │────▶│  local_agent.py              │
+│  - Gmail IMAP fetch         │     │  - Reads Pending_Approval/   │
+│  - Groq AI draft replies    │     │  - Human approves/rejects    │
+│  - Writes vault/.md files   │     │  - Gmail SMTP send           │
+│  - 24/7 always running      │     │  - Logs to Done/             │
+└─────────────────────────────┘     └──────────────────────────────┘
+           │                                      │
+           └──────────── Git Sync ────────────────┘
+                    (vault/ excluded — secrets safe)
+```
+
+### ✅ Platinum Features Complete
+
+| Feature | Status |
+|---------|--------|
+| Cloud Agent 24/7 (GitHub Codespaces) | ✅ LIVE |
+| Email fetch via Gmail IMAP (Cloud) | ✅ LIVE |
+| AI draft via Groq API (llama-3.1-8b-instant) | ✅ LIVE |
+| Vault sync — Git-based | ✅ LIVE |
+| Pending_Approval / Done / In_Progress folders | ✅ LIVE |
+| Claim-by-move rule (anti double-work) | ✅ LIVE |
+| Local Agent — Human Approval Flow | ✅ LIVE |
+| Email send via Gmail SMTP (Local) | ✅ LIVE |
+| Security — .env never synced, vault gitignored | ✅ LIVE |
+| Odoo Community on Cloud VM (Docker) | 🔄 In Progress |
+
+### Minimum Passing Gate — PROVEN ✅
+```
+Email arrives → Cloud Agent fetches → Groq drafts reply
+→ Saved to vault/Pending_Approval/
+→ Local Agent reads draft → Human approves [A]
+→ Gmail SMTP sends email → Logged to vault/Done/
+```
+
+### Run Platinum Tier
+```bash
+# On GitHub Codespaces (Cloud):
+cd platinum_tier_business_layer
+python cloud_agent.py       # Always-on email triage + Groq drafts
+
+# On Local PC:
+cd platinum_tier_business_layer
+python local_agent.py       # Review drafts → Approve/Edit/Reject
+```
+
+### Environment Variables (Codespaces Secrets)
+```env
+GROQ_API_KEY=your_groq_key        # console.groq.com — free, no card
+GMAIL_ADDRESS=your@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+```
 
 ---
 
@@ -349,6 +411,6 @@ Personal project for GIAIC Hackathon 0.
 
 ---
 
-**Last Updated**: 2026-03-29
-**Tier**: Gold 🥇 (100% Complete — All Requirements Met)
+**Last Updated**: 2026-04-08
+**Tier**: Platinum 💎 (In Progress — Cloud+Local Flow LIVE, Odoo Cloud pending)
 **Author**: Sharmeen Fatima — Creative Coderr
