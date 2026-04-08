@@ -18,7 +18,7 @@ load_dotenv()
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 VAULT    = Path(__file__).parent / "vault"
-PENDING  = VAULT / "Pending_Approval" / "email"
+PENDING  = VAULT / "Pending_Approval"
 DONE     = VAULT / "Done"
 DASHBOARD = VAULT / "Dashboard.md"  # written by Local ONLY
 
