@@ -1,6 +1,7 @@
 """
 Platinum Tier — Cloud Agent
-Runs on Oracle VM 24/7. Triages emails and writes drafts to vault for Local approval.
+Runs on Oracle VM / Codespaces 24/7. Triages emails, drafts replies,
+and creates draft Odoo invoices — all pending Local approval.
 """
 
 import os
@@ -8,6 +9,7 @@ import json
 import time
 import shutil
 import logging
+import xmlrpc.client
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -16,14 +18,15 @@ load_dotenv()
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 VAULT = Path(__file__).parent / "vault"
-NEEDS_ACTION   = VAULT / "Needs_Action" / "email"
-IN_PROGRESS    = VAULT / "In_Progress"  / "cloud_agent"
-PLANS          = VAULT / "Plans"        / "email"
-PENDING        = VAULT / "Pending_Approval" / "email"
-UPDATES        = VAULT / "Updates"
-DONE           = VAULT / "Done"
+NEEDS_ACTION    = VAULT / "Needs_Action"    / "email"
+IN_PROGRESS     = VAULT / "In_Progress"     / "cloud_agent"
+PLANS           = VAULT / "Plans"           / "email"
+PENDING         = VAULT / "Pending_Approval" / "email"
+PENDING_ODOO    = VAULT / "Pending_Approval" / "odoo"
+UPDATES         = VAULT / "Updates"
+DONE            = VAULT / "Done"
 
-for p in [NEEDS_ACTION, IN_PROGRESS, PLANS, PENDING, UPDATES, DONE]:
+for p in [NEEDS_ACTION, IN_PROGRESS, PLANS, PENDING, PENDING_ODOO, UPDATES, DONE]:
     p.mkdir(parents=True, exist_ok=True)
 
 # ── Logging ────────────────────────────────────────────────────────────────────
@@ -173,6 +176,88 @@ Local agent: review and approve/reject.
     return path
 
 
+# ── Odoo Integration ───────────────────────────────────────────────────────────
+def odoo_connect():
+    """Connect to Odoo via XML-RPC. Returns (models_proxy, uid) or (None, None)."""
+    try:
+        url  = os.getenv("ODOO_URL", "http://localhost:8069")
+        db   = os.getenv("ODOO_DB", "odoo")
+        user = os.getenv("ODOO_USERNAME", "admin")
+        pwd  = os.getenv("ODOO_PASSWORD", "admin")
+
+        common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
+        uid = common.authenticate(db, user, pwd, {})
+        if not uid:
+            log.warning("Odoo auth failed — check ODOO_USER/ODOO_PASSWORD")
+            return None, None
+        models = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
+        log.info(f"Odoo connected (uid={uid})")
+        return models, uid
+    except Exception as e:
+        log.error(f"Odoo connect failed: {e}")
+        return None, None
+
+
+def detect_invoice_intent(email: dict) -> bool:
+    """Return True if email looks like it needs an invoice."""
+    keywords = ["invoice", "payment", "bill", "charge", "quote", "order", "purchase"]
+    text = (email.get("subject", "") + " " + email.get("body", "")).lower()
+    return any(kw in text for kw in keywords)
+
+
+def create_odoo_draft_invoice(email: dict) -> int | None:
+    """Create a draft invoice in Odoo and write approval request to vault."""
+    models, uid = odoo_connect()
+    if not models:
+        return None
+
+    db  = os.getenv("ODOO_DB", "odoo")
+    pwd = os.getenv("ODOO_PASSWORD", "admin")
+
+    try:
+        invoice_id = models.execute_kw(db, uid, pwd, "account.move", "create", [{
+            "move_type": "out_invoice",
+            "ref": f"AI-Draft: {email['subject'][:50]}",
+            "invoice_line_ids": [(0, 0, {
+                "name": f"AI Service — re: {email['subject'][:60]}",
+                "quantity": 1,
+                "price_unit": 0.0,  # Local agent sets final price before posting
+            })],
+        }])
+        log.info(f"Odoo draft invoice created: ID={invoice_id}")
+
+        # Write to Pending_Approval/odoo/
+        ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        path = PENDING_ODOO / f"{ts}_invoice_{invoice_id}.md"
+        path.write_text(f"""# Odoo Invoice — Pending Approval
+
+## Trigger Email
+- **From:** {email['sender']}
+- **Subject:** {email['subject']}
+- **Received:** {email['received']}
+
+## Draft Invoice
+- **Odoo Invoice ID:** {invoice_id}
+- **Line:** AI Service — re: {email['subject'][:60]}
+- **Price:** TBD (set before posting)
+- **Status:** draft
+
+## Action Required
+Local agent: review and approve to POST this invoice in Odoo.
+- To approve: update price if needed, then confirm posting.
+- To reject: move to Done/rejected_*.
+
+**Status:** PENDING_APPROVAL
+**Drafted by:** cloud_agent @ {datetime.utcnow().isoformat()}
+""", encoding="utf-8")
+        log.info(f"Odoo approval request written: {path.name}")
+        return invoice_id
+
+    except Exception as e:
+        log.error(f"Odoo draft invoice failed: {e}")
+        return None
+
+
 # ── Signal writer ──────────────────────────────────────────────────────────────
 def write_signal(message: str):
     """Write a status signal for Local agent."""
@@ -209,6 +294,12 @@ def run_once():
 
         # Signal
         write_signal(f"New draft ready for approval: {email['subject'][:60]}")
+
+        # Odoo: create draft invoice if email looks invoice-related
+        if detect_invoice_intent(email):
+            inv_id = create_odoo_draft_invoice(email)
+            if inv_id:
+                write_signal(f"Odoo draft invoice created (ID={inv_id}) for: {email['subject'][:50]}")
 
     log.info("=== Triage cycle complete ===")
 
