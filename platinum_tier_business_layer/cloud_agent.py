@@ -215,13 +215,31 @@ def create_odoo_draft_invoice(email: dict) -> int | None:
     pwd = os.getenv("ODOO_PASSWORD", "admin")
 
     try:
+        # Find or create partner from sender email
+        import re as _re
+        email_match = _re.search(r"<(.+?)>", email["sender"])
+        sender_email = email_match.group(1) if email_match else email["sender"]
+        sender_name  = email["sender"].split("<")[0].strip() or sender_email
+
+        partner_ids = models.execute_kw(db, uid, pwd, "res.partner", "search",
+            [[["email", "=", sender_email]]])
+        if partner_ids:
+            partner_id = partner_ids[0]
+        else:
+            partner_id = models.execute_kw(db, uid, pwd, "res.partner", "create", [{
+                "name": sender_name,
+                "email": sender_email,
+            }])
+            log.info(f"Created Odoo partner: {sender_name} <{sender_email}>")
+
         invoice_id = models.execute_kw(db, uid, pwd, "account.move", "create", [{
             "move_type": "out_invoice",
+            "partner_id": partner_id,
             "ref": f"AI-Draft: {email['subject'][:50]}",
             "invoice_line_ids": [(0, 0, {
                 "name": f"AI Service — re: {email['subject'][:60]}",
                 "quantity": 1,
-                "price_unit": 0.0,  # Local agent sets final price before posting
+                "price_unit": 0.0,
             })],
         }])
         log.info(f"Odoo draft invoice created: ID={invoice_id}")
